@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+// In production (Netlify) use the Railway backend URL via VITE_API_URL.
+// In development the Vite proxy forwards /api → localhost:5000.
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
 });
 
 // Attach JWT token to every request

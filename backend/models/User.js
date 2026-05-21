@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    avatar: { type: String, default: '' },
   },
   { timestamps: true }
 );

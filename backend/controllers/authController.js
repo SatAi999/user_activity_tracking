@@ -93,4 +93,33 @@ const getMe = async (req, res) => {
   res.json(req.user);
 };
 
-module.exports = { register, login, getMe };
+// PUT /api/auth/profile
+const updateProfile = async (req, res) => {
+  const { name, avatar, currentPassword, newPassword } = req.body;
+  try {
+    const user = await User.findById(req.user._id).select('+password');
+
+    if (name !== undefined) user.name = name.trim() || user.name;
+    if (avatar !== undefined) user.avatar = avatar.trim();
+
+    if (newPassword) {
+      if (!currentPassword) return res.status(400).json({ message: 'Current password is required to set a new password' });
+      const match = await user.matchPassword(currentPassword);
+      if (!match) return res.status(401).json({ message: 'Current password is incorrect' });
+      user.password = newPassword;
+    }
+
+    await user.save();
+
+    const updated = await User.findById(user._id);
+    res.json({
+      _id: updated._id, name: updated.name, email: updated.email,
+      role: updated.role, avatar: updated.avatar, status: updated.status,
+      token: req.headers.authorization?.split(' ')[1],
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { register, login, getMe, updateProfile };

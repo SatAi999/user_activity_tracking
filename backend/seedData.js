@@ -20,38 +20,41 @@ const USERS = [
 ];
 
 // ── Sample tasks per user (indexed to USERS array) ───────────────────────────
+const future = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const past   = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+
 const TASK_TEMPLATES = [
   // Admin tasks
   [
-    { title: 'Set up CI/CD pipeline',          description: 'Configure GitHub Actions for automated deployments.', status: 'completed',  priority: 'high'   },
-    { title: 'Review Q2 security audit',       description: 'Go through the OWASP checklist and resolve findings.', status: 'in-progress', priority: 'high'   },
-    { title: 'Onboard new team members',       description: 'Prepare accounts and access for 3 new developers.',   status: 'pending',     priority: 'medium' },
-    { title: 'Update API documentation',       description: 'Sync Swagger docs with the latest endpoint changes.', status: 'completed',  priority: 'low'    },
-    { title: 'Plan next sprint',               description: 'Prioritise backlog items for the upcoming 2-week sprint.', status: 'pending', priority: 'medium' },
+    { title: 'Set up CI/CD pipeline',          description: 'Configure GitHub Actions for automated deployments.', status: 'completed',   priority: 'high',   category: 'Work',     dueDate: past(5) },
+    { title: 'Review Q2 security audit',       description: 'Go through the OWASP checklist and resolve findings.', status: 'in-progress', priority: 'high', category: 'Urgent',   dueDate: future(3) },
+    { title: 'Onboard new team members',       description: 'Prepare accounts and access for 3 new developers.',   status: 'pending',     priority: 'medium', category: 'Work',     dueDate: future(7) },
+    { title: 'Update API documentation',       description: 'Sync Swagger docs with the latest endpoint changes.', status: 'completed',   priority: 'low',    category: 'Work',     dueDate: past(10) },
+    { title: 'Plan next sprint',               description: 'Prioritise backlog items for the upcoming 2-week sprint.', status: 'pending', priority: 'medium', category: 'Work',    dueDate: future(2) },
   ],
   // Alice tasks
   [
-    { title: 'Design user onboarding flow',    description: 'Create wireframes for the new user registration flow.',  status: 'completed',  priority: 'high'   },
-    { title: 'Fix login page mobile layout',   description: 'The login form overflows on screens below 375 px.',      status: 'completed',  priority: 'high'   },
-    { title: 'Write unit tests for AuthContext', description: 'Cover login, register, and logout scenarios.',         status: 'in-progress', priority: 'medium' },
-    { title: 'Refactor Dashboard component',   description: 'Extract stat cards into a reusable StatCard component.', status: 'pending',    priority: 'low'    },
-    { title: 'Implement dark mode toggle',     description: 'Add a theme toggle to the user settings page.',          status: 'pending',    priority: 'low'    },
+    { title: 'Design user onboarding flow',      description: 'Create wireframes for the new user registration flow.',  status: 'completed',   priority: 'high',   category: 'Work',     dueDate: past(3)  },
+    { title: 'Fix login page mobile layout',     description: 'The login form overflows on screens below 375 px.',      status: 'completed',   priority: 'high',   category: 'Urgent',   dueDate: past(1)  },
+    { title: 'Write unit tests for AuthContext', description: 'Cover login, register, and logout scenarios.',           status: 'in-progress', priority: 'medium', category: 'Work',     dueDate: future(5) },
+    { title: 'Refactor Dashboard component',     description: 'Extract stat cards into a reusable StatCard component.', status: 'pending',     priority: 'low',    category: 'Work',     dueDate: future(10) },
+    { title: 'Gym session',                      description: 'Cardio + weights, track progress in fitness app.',        status: 'pending',     priority: 'low',    category: 'Personal', dueDate: future(1) },
   ],
   // Bob tasks
   [
-    { title: 'Optimise MongoDB queries',       description: 'Add indexes to users and tasks collections.',            status: 'in-progress', priority: 'high'   },
-    { title: 'Set up Redis caching layer',     description: 'Cache frequently accessed user sessions.',               status: 'pending',     priority: 'high'   },
-    { title: 'Migrate to TypeScript',          description: 'Convert backend controllers to TypeScript step by step.', status: 'pending',   priority: 'medium' },
-    { title: 'Write API integration tests',    description: 'Test all REST endpoints using Jest + Supertest.',        status: 'completed',  priority: 'medium' },
-    { title: 'Containerise backend with Docker', description: 'Write a Dockerfile and docker-compose.yml.',          status: 'in-progress', priority: 'medium' },
+    { title: 'Optimise MongoDB queries',         description: 'Add indexes to users and tasks collections.',             status: 'in-progress', priority: 'high',   category: 'Work',     dueDate: past(2)  },
+    { title: 'Set up Redis caching layer',        description: 'Cache frequently accessed user sessions.',                status: 'pending',     priority: 'high',   category: 'Urgent',   dueDate: future(4) },
+    { title: 'Migrate to TypeScript',            description: 'Convert backend controllers to TypeScript step by step.', status: 'pending',     priority: 'medium', category: 'Work',     dueDate: future(14) },
+    { title: 'Write API integration tests',      description: 'Test all REST endpoints using Jest + Supertest.',         status: 'completed',   priority: 'medium', category: 'Work',     dueDate: past(4)  },
+    { title: 'Weekly grocery run',               description: 'Pick up groceries before weekend.',                        status: 'pending',     priority: 'low',    category: 'Personal', dueDate: future(2) },
   ],
   // Carol tasks
   [
-    { title: 'Analyse user activity data',     description: 'Build summary charts from the activity logs collection.', status: 'in-progress', priority: 'high' },
-    { title: 'Prepare monthly report',         description: 'Export task completion stats for May 2026.',              status: 'pending',     priority: 'medium' },
-    { title: 'Audit inactive accounts',        description: 'Identify users who have not logged in for 60+ days.',    status: 'completed',  priority: 'low'    },
-    { title: 'Review role assignment policy',  description: 'Document the process for promoting users to admin.',     status: 'completed',  priority: 'low'    },
-    { title: 'Update privacy policy page',     description: 'Reflect the new data retention rules in the docs.',      status: 'pending',     priority: 'low'    },
+    { title: 'Analyse user activity data',       description: 'Build summary charts from the activity logs collection.', status: 'in-progress', priority: 'high',   category: 'Work',     dueDate: future(3) },
+    { title: 'Prepare monthly report',           description: 'Export task completion stats for May 2026.',               status: 'pending',     priority: 'medium', category: 'Work',     dueDate: future(8) },
+    { title: 'Audit inactive accounts',          description: 'Identify users who have not logged in for 60+ days.',     status: 'completed',   priority: 'low',    category: 'Work',     dueDate: past(7)  },
+    { title: 'Review role assignment policy',    description: 'Document the process for promoting users to admin.',      status: 'completed',   priority: 'low',    category: 'Work',     dueDate: past(5)  },
+    { title: 'Update privacy policy page',       description: 'Reflect the new data retention rules in the docs.',       status: 'pending',     priority: 'low',    category: 'Other',    dueDate: future(12) },
   ],
 ];
 

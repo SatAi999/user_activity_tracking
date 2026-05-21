@@ -1,11 +1,17 @@
 const { validationResult } = require('express-validator');
 const Task = require('../models/Task');
+const Notification = require('../models/Notification');
 const ActivityLog = require('../models/ActivityLog');
 
-// GET /api/tasks  — user's own tasks
+// GET /api/tasks — user's own + assigned tasks
 const getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const tasks = await Task.find({
+      $or: [{ user: req.user._id }, { assignedTo: req.user._id }],
+    })
+      .populate('assignedTo', 'name email')
+      .populate('assignedBy', 'name email')
+      .sort({ createdAt: -1 });
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -15,25 +21,21 @@ const getTasks = async (req, res) => {
 // POST /api/tasks
 const createTask = async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  const { title, description, priority } = req.body;
+  const { title, description, priority, category, dueDate } = req.body;
 
   try {
     const task = await Task.create({
-      title,
-      description,
-      priority,
+      title, description,
+      priority, category: category || 'Other',
+      dueDate: dueDate || null,
       user: req.user._id,
     });
 
     await ActivityLog.create({
-      user: req.user._id,
-      action: 'TASK_CREATED',
-      details: `Task "${task.title}" created`,
-      ipAddress: req.ip,
+      user: req.user._id, action: 'TASK_CREATED',
+      details: `Task "${task.title}" created`, ipAddress: req.ip,
     });
 
     res.status(201).json(task);
@@ -46,32 +48,42 @@ const createTask = async (req, res) => {
 const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
+    const isOwner    = task.user.toString() === req.user._id.toString();
+    const isAssignee = task.assignedTo?.toString() === req.user._id.toString();
+    const isAdmin    = req.user.role === 'admin';
 
-    // Users can only update their own tasks
-    if (task.user.toString() !== req.user._id.toString()) {
+    if (!isOwner && !isAssignee && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to update this task' });
     }
 
-    const { title, description, status, priority } = req.body;
-    task.title = title ?? task.title;
-    task.description = description ?? task.description;
-    task.status = status ?? task.status;
-    task.priority = priority ?? task.priority;
+    // Admin-assigned tasks: regular users can only update status
+    if (task.isAdminAssigned && !isAdmin) {
+      task.status = req.body.status ?? task.status;
+    } else {
+      const { title, description, status, priority, category, dueDate } = req.body;
+      task.title       = title       ?? task.title;
+      task.description = description ?? task.description;
+      task.status      = status      ?? task.status;
+      task.priority    = priority    ?? task.priority;
+      task.category    = category    ?? task.category;
+      if (dueDate !== undefined) task.dueDate = dueDate || null;
+    }
 
     const updated = await task.save();
 
     await ActivityLog.create({
-      user: req.user._id,
-      action: 'TASK_UPDATED',
-      details: `Task "${updated.title}" updated`,
-      ipAddress: req.ip,
+      user: req.user._id, action: 'TASK_UPDATED',
+      details: `Task "${updated.title}" updated`, ipAddress: req.ip,
     });
 
-    res.json(updated);
+    const populated = await updated.populate([
+      { path: 'assignedTo', select: 'name email' },
+      { path: 'assignedBy', select: 'name email' },
+    ]);
+
+    res.json(populated);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -81,21 +93,18 @@ const updateTask = async (req, res) => {
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    // Users can only delete their own tasks
     if (task.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this task' });
     }
+    if (task.isAdminAssigned) {
+      return res.status(403).json({ message: 'Admin-assigned tasks can only be deleted by admins' });
+    }
 
     await ActivityLog.create({
-      user: req.user._id,
-      action: 'TASK_DELETED',
-      details: `Task "${task.title}" deleted`,
-      ipAddress: req.ip,
+      user: req.user._id, action: 'TASK_DELETED',
+      details: `Task "${task.title}" deleted`, ipAddress: req.ip,
     });
 
     await task.deleteOne();

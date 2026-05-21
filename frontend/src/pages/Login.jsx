@@ -73,16 +73,16 @@ const Login = () => {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      <div className="flex-1 flex items-center justify-center p-8 bg-white dark:bg-[#06071a]">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <FiCheckSquare className="text-white text-sm" />
             </div>
-            <span className="font-bold text-slate-900 text-lg">TaskFlow</span>
+            <span className="font-bold text-slate-900 dark:text-white text-lg">TaskFlow</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Sign in</h2>
-          <p className="text-slate-500 text-sm mb-6">Enter your credentials to continue</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sign in</h2>
+          <p className="text-slate-500 dark:text-[#9494b8] text-sm mb-6">Enter your credentials to continue</p>
 
           {/* Role selector */}
           <div className="flex gap-3 mb-6">
@@ -93,8 +93,8 @@ const Login = () => {
                 onClick={() => setRole(value)}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                   role === value
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                    : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
+                    : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-[#9494b8] hover:border-slate-300 dark:hover:border-white/20 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 <Icon className="text-sm" />
@@ -105,7 +105,7 @@ const Login = () => {
 
           {/* Inline error */}
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2">
+            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 text-sm flex items-start gap-2">
               <span className="mt-0.5">⚠</span>
               <span>{error}</span>
             </div>
@@ -113,9 +113,9 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-[#9494b8] mb-1.5">Email address</label>
               <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#52527a] text-sm" />
                 <input
                   type="email"
                   name="email"
@@ -123,14 +123,14 @@ const Login = () => {
                   onChange={handleChange}
                   required
                   placeholder="you@example.com"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900 placeholder-slate-400"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-500/50 focus:border-transparent bg-white dark:bg-white/5 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-[#52527a]"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-[#9494b8] mb-1.5">Password</label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#52527a] text-sm" />
                 <input
                   type="password"
                   name="password"
@@ -138,7 +138,7 @@ const Login = () => {
                   onChange={handleChange}
                   required
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 dark:border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-500/50 focus:border-transparent bg-white dark:bg-white/5 text-slate-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -155,9 +155,9 @@ const Login = () => {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="text-center text-sm text-slate-500 dark:text-[#9494b8] mt-6">
             Don't have an account?{' '}
-            <Link to="/register" className="text-indigo-600 font-semibold hover:underline">Create one</Link>
+            <Link to="/register" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Create one</Link>
           </p>
         </div>
       </div>

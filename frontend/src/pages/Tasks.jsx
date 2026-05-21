@@ -1,42 +1,225 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import {
+  FiPlus, FiEdit2, FiTrash2, FiX, FiLock, FiMessageCircle, FiSend, FiChevronDown, FiChevronUp
+} from 'react-icons/fi';
 
-const STATUS = {
-  pending: { label: 'Pending', cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+const STATUS_MAP = {
+  pending:     { label: 'Pending',     cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
   'in-progress': { label: 'In Progress', cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  completed: { label: 'Completed', cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+  completed:   { label: 'Completed',   cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
 };
-
-const PRIORITY = {
-  low: { cls: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200', dot: 'bg-slate-400' },
+const PRIORITY_MAP = {
+  low:    { cls: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200', dot: 'bg-slate-400' },
   medium: { cls: 'bg-orange-50 text-orange-600 ring-1 ring-orange-200', dot: 'bg-orange-400' },
-  high: { cls: 'bg-red-50 text-red-600 ring-1 ring-red-200', dot: 'bg-red-500' },
+  high:   { cls: 'bg-red-50 text-red-600 ring-1 ring-red-200', dot: 'bg-red-500' },
 };
+const CATEGORY_MAP = {
+  Work:     'bg-indigo-100 text-indigo-700',
+  Personal: 'bg-violet-100 text-violet-700',
+  Urgent:   'bg-rose-100 text-rose-700',
+  Other:    'bg-slate-100 text-slate-600',
+};
+const CATEGORIES = ['Work', 'Personal', 'Urgent', 'Other'];
+const emptyForm = { title: '', description: '', priority: 'medium', status: 'pending', category: 'Other', dueDate: '' };
 
-const emptyForm = { title: '', description: '', priority: 'medium', status: 'pending' };
+function isOverdue(task) {
+  return task.dueDate && task.status !== 'completed' && new Date(task.dueDate) < new Date();
+}
+
+function TaskCard({ task, currentUser, onEdit, onDelete, onStatusChange }) {
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments]         = useState([]);
+  const [loadingC, setLoadingC]         = useState(false);
+  const [newComment, setNewComment]     = useState('');
+  const [sending, setSending]           = useState(false);
+
+  const overdue     = isOverdue(task);
+  const isLocked    = task.isAdminAssigned && currentUser?.role !== 'admin';
+  const isOwner     = task.user === currentUser?._id || task.user?._id === currentUser?._id;
+  const canDelete   = !task.isAdminAssigned && (isOwner || currentUser?.role === 'admin');
+
+  const loadComments = async () => {
+    if (loadingC) return;
+    setLoadingC(true);
+    try {
+      const { data } = await api.get(`/tasks/${task._id}/comments`);
+      setComments(data);
+    } catch (_) { toast.error('Failed to load comments'); }
+    finally { setLoadingC(false); }
+  };
+
+  const toggleComments = () => {
+    if (!showComments) loadComments();
+    setShowComments(s => !s);
+  };
+
+  const submitComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    setSending(true);
+    try {
+      const { data } = await api.post(`/tasks/${task._id}/comments`, { content: newComment });
+      setComments(c => [...c, data]);
+      setNewComment('');
+    } catch (_) { toast.error('Failed to add comment'); }
+    finally { setSending(false); }
+  };
+
+  const assigneeName = task.assignedTo?.name || task.assignedTo;
+  const assignerName = task.assignedBy?.name || task.assignedBy;
+
+  return (
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl border transition-all hover:shadow-md ${overdue ? 'border-red-300 dark:border-red-700' : 'border-slate-200 dark:border-slate-700'}`}>
+      <div className="p-5">
+        {/* Top row */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              {task.isAdminAssigned && (
+                <span className="flex items-center gap-1 text-[11px] font-semibold bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 px-2 py-0.5 rounded-full">
+                  <FiLock className="text-[10px]" /> Admin Assigned
+                </span>
+              )}
+              {overdue && (
+                <span className="text-[11px] font-semibold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full">
+                  ⚠ Overdue
+                </span>
+              )}
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${CATEGORY_MAP[task.category] || CATEGORY_MAP.Other}`}>
+                {task.category}
+              </span>
+            </div>
+            <h3 className={`text-[17px] font-semibold leading-tight dark:text-white ${overdue ? 'text-red-700 dark:text-red-400' : 'text-slate-900'}`}>
+              {task.title}
+            </h3>
+            {task.description && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{task.description}</p>
+            )}
+          </div>
+          {/* Actions */}
+          <div className="flex gap-1 shrink-0">
+            {!isLocked && (
+              <button onClick={() => onEdit(task)} className="p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                <FiEdit2 />
+              </button>
+            )}
+            {isLocked && (
+              <button onClick={() => onEdit(task)} title="Update status only" className="p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                <FiEdit2 />
+              </button>
+            )}
+            {canDelete && (
+              <button onClick={() => onDelete(task._id)} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <FiTrash2 />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Badges */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[task.status]?.cls}`}>
+            {STATUS_MAP[task.status]?.label}
+          </span>
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${PRIORITY_MAP[task.priority]?.cls}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_MAP[task.priority]?.dot}`} />
+            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+          </span>
+          {task.dueDate && (
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${overdue ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
+              Due {new Date(task.dueDate).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+
+        {/* Assignee info */}
+        {assigneeName && (
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+            Assigned to <span className="font-medium text-slate-700 dark:text-slate-200">{assigneeName}</span>
+            {assignerName && <> by <span className="font-medium">{assignerName}</span></>}
+          </p>
+        )}
+
+        {/* Comments toggle */}
+        <button
+          onClick={toggleComments}
+          className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors"
+        >
+          <FiMessageCircle />
+          {showComments ? 'Hide comments' : 'Comments'}
+          {showComments ? <FiChevronUp /> : <FiChevronDown />}
+        </button>
+      </div>
+
+      {showComments && (
+        <div className="border-t border-slate-100 dark:border-slate-700 px-5 pb-4">
+          {loadingC ? (
+            <p className="text-xs text-slate-400 py-3">Loading…</p>
+          ) : (
+            <div className="space-y-3 mt-3">
+              {comments.length === 0 && <p className="text-xs text-slate-400">No comments yet.</p>}
+              {comments.map(c => (
+                <div key={c._id} className="flex gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                    {c.user?.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{c.user?.name}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200">{c.content}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{new Date(c.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <form onSubmit={submitComment} className="flex gap-2 mt-3">
+            <input
+              value={newComment} onChange={e => setNewComment(e.target.value)}
+              placeholder="Add a comment…"
+              className="flex-1 text-sm px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <button disabled={sending || !newComment.trim()} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 transition-colors">
+              <FiSend />
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const Tasks = () => {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editTask, setEditTask] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const { user } = useAuth();
+  const [tasks, setTasks]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [showModal, setShowModal]   = useState(false);
+  const [editTask, setEditTask]     = useState(null);
+  const [form, setForm]             = useState(emptyForm);
+  const [saving, setSaving]         = useState(false);
+  const [filterStatus, setFilterStatus]     = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
 
-  useEffect(() => {
+  const fetchTasks = () => {
     api.get('/tasks')
       .then(({ data }) => setTasks(data))
       .catch(() => toast.error('Failed to load tasks'))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchTasks(); }, []);
 
   const openCreate = () => { setEditTask(null); setForm(emptyForm); setShowModal(true); };
-  const openEdit = (task) => {
-    setEditTask(task);
-    setForm({ title: task.title, description: task.description, priority: task.priority, status: task.status });
+  const openEdit   = (t) => {
+    setEditTask(t);
+    setForm({
+      title: t.title, description: t.description || '',
+      priority: t.priority, status: t.status,
+      category: t.category || 'Other',
+      dueDate: t.dueDate ? t.dueDate.slice(0, 10) : '',
+    });
     setShowModal(true);
   };
 
@@ -44,210 +227,196 @@ const Tasks = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = { ...form };
+      if (!payload.dueDate) payload.dueDate = null;
       if (editTask) {
-        const { data } = await api.put(`/tasks/${editTask._id}`, form);
-        setTasks(tasks.map(t => t._id === editTask._id ? data : t));
+        const { data } = await api.put(`/tasks/${editTask._id}`, payload);
+        setTasks(ts => ts.map(t => t._id === data._id ? data : t));
         toast.success('Task updated');
       } else {
-        const { data } = await api.post('/tasks', form);
-        setTasks([data, ...tasks]);
+        const { data } = await api.post('/tasks', payload);
+        setTasks(ts => [data, ...ts]);
         toast.success('Task created');
       }
       setShowModal(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong');
-    } finally {
-      setSaving(false);
-    }
+      toast.error(err.response?.data?.message || 'Error saving task');
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this task?')) return;
+    if (!confirm('Delete this task?')) return;
     try {
       await api.delete(`/tasks/${id}`);
-      setTasks(tasks.filter(t => t._id !== id));
+      setTasks(ts => ts.filter(t => t._id !== id));
       toast.success('Task deleted');
-    } catch {
-      toast.error('Failed to delete');
-    }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to delete'); }
   };
 
-  const counts = {
-    all: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
-    'in-progress': tasks.filter(t => t.status === 'in-progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-  };
+  const isLocked = editTask?.isAdminAssigned && user?.role !== 'admin';
 
-  const filtered = filterStatus === 'all' ? tasks : tasks.filter(t => t.status === filterStatus);
+  const filtered = tasks.filter(t => {
+    const sMatch = filterStatus === 'all' || t.status === filterStatus;
+    const cMatch = filterCategory === 'all' || t.category === filterCategory;
+    return sMatch && cMatch;
+  });
+
+  const counts = { all: tasks.length };
+  tasks.forEach(t => { counts[t.status] = (counts[t.status] || 0) + 1; });
+
+  const catCounts = { all: tasks.length };
+  tasks.forEach(t => { catCounts[t.category] = (catCounts[t.category] || 0) + 1; });
 
   return (
-    <div className="px-6 py-8 max-w-5xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto dark:text-slate-100">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">My Tasks</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{tasks.length} total tasks</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">My Tasks</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{tasks.length} tasks total</p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-colors shadow-sm"
         >
-          <FiPlus className="text-base" /> New Task
+          <FiPlus /> New Task
         </button>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit mb-6">
-        {['all', 'pending', 'in-progress', 'completed'].map(s => (
+      {/* Status filter */}
+      <div className="flex gap-2 flex-wrap mb-3">
+        {[['all', 'All'], ['pending', 'Pending'], ['in-progress', 'In Progress'], ['completed', 'Completed']].map(([val, lbl]) => (
           <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${
-              filterStatus === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            key={val}
+            onClick={() => setFilterStatus(val)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              filterStatus === val
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300'
             }`}
           >
-            {s === 'all' ? 'All' : s}
-            <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-              filterStatus === s ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'
-            }`}>
-              {counts[s]}
-            </span>
+            {lbl} <span className="opacity-60">({counts[val] || 0})</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Category filter */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        {['all', ...CATEGORIES].map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilterCategory(cat)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+              filterCategory === cat
+                ? 'bg-violet-600 text-white shadow'
+                : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-violet-300'
+            }`}
+          >
+            {cat === 'all' ? 'All Categories' : cat} ({catCounts[cat] || 0})
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+        <div className="flex items-center justify-center h-40">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-            <FiCheck className="text-2xl text-slate-400" />
-          </div>
-          <p className="text-slate-600 font-medium">No tasks here</p>
-          <p className="text-slate-400 text-sm mt-1">
-            {filterStatus === 'all' ? 'Click "New Task" to get started' : `No ${filterStatus} tasks`}
-          </p>
+        <div className="text-center py-20 text-slate-400 dark:text-slate-500">
+          <p className="text-5xl mb-4">📋</p>
+          <p className="text-lg font-medium">No tasks found</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map(task => (
-            <div
+            <TaskCard
               key={task._id}
-              className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-start gap-4 hover:border-slate-300 hover:shadow-sm transition-all group"
-            >
-              <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${PRIORITY[task.priority]?.dot}`} title={`${task.priority} priority`} />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-slate-800">{task.title}</h3>
-                {task.description && (
-                  <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">{task.description}</p>
-                )}
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS[task.status]?.cls}`}>
-                    {STATUS[task.status]?.label}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PRIORITY[task.priority]?.cls}`}>
-                    {task.priority}
-                  </span>
-                  <span className="text-xs text-slate-400">{new Date(task.createdAt).toLocaleDateString()}</span>
-                </div>
-              </div>
-              <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => openEdit(task)}
-                  className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 transition-colors"
-                  title="Edit"
-                >
-                  <FiEdit2 className="text-sm" />
-                </button>
-                <button
-                  onClick={() => handleDelete(task._id)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
-                  title="Delete"
-                >
-                  <FiTrash2 className="text-sm" />
-                </button>
-              </div>
-            </div>
+              task={task}
+              currentUser={user}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
 
+      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-900">{editTask ? 'Edit Task' : 'New Task'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                <FiX className="text-lg" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="text-xl font-bold dark:text-white">{editTask ? 'Edit Task' : 'Create Task'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <FiX className="text-xl" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {isLocked && (
+                <div className="flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+                  <FiLock /> Admin-assigned task — you can only update the status.
+                </div>
+              )}
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Title *</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
                 <input
-                  type="text"
-                  value={form.title}
-                  onChange={e => setForm({ ...form, title: e.target.value })}
-                  required
-                  placeholder="Task title..."
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900 placeholder-slate-400"
+                  required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  disabled={isLocked}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
-                  rows={3}
-                  placeholder="Optional description..."
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-slate-900 placeholder-slate-400"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+              {!isLocked && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Priority</label>
-                  <select
-                    value={form.priority}
-                    onChange={e => setForm({ ...form, priority: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
-                  >
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                  <textarea
+                    rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                  <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                  <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
+                    disabled={isLocked}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50">
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                   </select>
                 </div>
-                {editTask && (
+              </div>
+              {!isLocked && (
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Status</label>
-                    <select
-                      value={form.status}
-                      onChange={e => setForm({ ...form, status: e.target.value })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-slate-900"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="completed">Completed</option>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                    <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                )}
-              </div>
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                >
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+                    <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium transition-colors">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-                >
-                  {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                  {editTask ? 'Save Changes' : 'Create Task'}
+                <button type="submit" disabled={saving}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold disabled:opacity-50 transition-colors">
+                  {saving ? 'Saving…' : editTask ? 'Save Changes' : 'Create Task'}
                 </button>
               </div>
             </form>
