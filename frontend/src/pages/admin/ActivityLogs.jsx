@@ -3,14 +3,14 @@ import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import { FiSearch, FiActivity } from 'react-icons/fi';
 
-const ACTION_COLORS = {
-  LOGIN: 'bg-blue-100 text-blue-700',
-  REGISTER: 'bg-indigo-100 text-indigo-700',
-  TASK_CREATED: 'bg-green-100 text-green-700',
-  TASK_UPDATED: 'bg-yellow-100 text-yellow-700',
-  TASK_DELETED: 'bg-red-100 text-red-600',
-  USER_STATUS_UPDATED: 'bg-orange-100 text-orange-600',
-  USER_DELETED: 'bg-red-100 text-red-700',
+const ACTION_STYLE = {
+  LOGIN:               { cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',     dot: 'bg-blue-500' },
+  REGISTER:            { cls: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200', dot: 'bg-indigo-500' },
+  TASK_CREATED:        { cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', dot: 'bg-emerald-500' },
+  TASK_UPDATED:        { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',    dot: 'bg-amber-500' },
+  TASK_DELETED:        { cls: 'bg-red-50 text-red-600 ring-1 ring-red-200',          dot: 'bg-red-500' },
+  USER_STATUS_UPDATED: { cls: 'bg-orange-50 text-orange-600 ring-1 ring-orange-200', dot: 'bg-orange-500' },
+  USER_DELETED:        { cls: 'bg-red-50 text-red-700 ring-1 ring-red-200',          dot: 'bg-red-600' },
 };
 
 const ActivityLogs = () => {
@@ -28,7 +28,7 @@ const ActivityLogs = () => {
 
   const actions = ['all', 'LOGIN', 'REGISTER', 'TASK_CREATED', 'TASK_UPDATED', 'TASK_DELETED'];
 
-  const filtered = logs.filter((log) => {
+  const filtered = logs.filter(log => {
     const matchAction = filterAction === 'all' || log.action === filterAction;
     const matchSearch =
       log.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,81 +38,87 @@ const ActivityLogs = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="px-6 py-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Activity Logs</h1>
-          <p className="text-gray-500 text-sm">{logs.length} recent activity records</p>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-emerald-50 ring-1 ring-emerald-200 rounded-lg flex items-center justify-center">
+            <FiActivity className="text-emerald-600 text-sm" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Activity Logs</h1>
+            <p className="text-sm text-slate-500">{logs.length} recent activity records</p>
+          </div>
         </div>
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
           <input
             type="text"
-            placeholder="Search logs..."
+            placeholder="Search by user or details..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64 text-slate-900 placeholder-slate-400"
           />
         </div>
       </div>
 
-      {/* Action filter */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {actions.map((a) => (
+        {actions.map(a => (
           <button
             key={a}
             onClick={() => setFilterAction(a)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              filterAction === a ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              filterAction === a
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
-            {a === 'all' ? 'All' : a.replace('_', ' ')}
+            {a === 'all' ? 'All Events' : a.replace(/_/g, ' ')}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <FiActivity className="text-5xl mx-auto mb-3 opacity-30" />
-          <p>No activity logs found</p>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+            <FiActivity className="text-2xl text-slate-400" />
+          </div>
+          <p className="text-slate-600 font-medium">No activity logs found</p>
+          <p className="text-slate-400 text-sm mt-1">Try adjusting your filters</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Action', 'User', 'Details', 'IP Address', 'Time'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {h}
-                    </th>
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  {['Event', 'User', 'Details', 'IP Address', 'Time'].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((log) => (
-                  <tr key={log._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-600'}`}>
-                        {log.action.replace('_', ' ')}
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map(log => (
+                  <tr key={log._id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold ${ACTION_STYLE[log.action]?.cls || 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${ACTION_STYLE[log.action]?.dot || 'bg-slate-400'}`} />
+                        {log.action.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-gray-700">{log.user?.name || 'Unknown'}</p>
-                      <p className="text-xs text-gray-400">{log.user?.email}</p>
+                    <td className="px-5 py-3.5">
+                      <p className="text-sm font-medium text-slate-800">{log.user?.name || 'Unknown'}</p>
+                      <p className="text-xs text-slate-400">{log.user?.email}</p>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                      {log.details || '—'}
+                    <td className="px-5 py-3.5 text-sm text-slate-600 max-w-xs">
+                      <span className="line-clamp-1">{log.details || '—'}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">
-                      {log.ipAddress || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString()}
+                    <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">{log.ipAddress || '—'}</td>
+                    <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">
+                      {new Date(log.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
                   </tr>
                 ))}

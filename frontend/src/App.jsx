@@ -16,12 +16,14 @@ import TaskMonitoring from './pages/admin/TaskMonitoring';
 import ActivityLogs from './pages/admin/ActivityLogs';
 
 const Layout = ({ children }) => (
-  <>
+  <div className="flex h-screen bg-slate-50 overflow-hidden">
     <Navbar />
-    <main className="min-h-[calc(100vh-4rem)] bg-gray-50">
-      {children}
-    </main>
-  </>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+        {children}
+      </main>
+    </div>
+  </div>
 );
 
 function App() {
