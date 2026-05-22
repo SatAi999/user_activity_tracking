@@ -33,8 +33,8 @@ Access control is enforced at the API layer — not just hidden buttons in the U
 
 | Service | URL |
 |---------|-----|
-| Frontend (Netlify) | _https://your-app.netlify.app_ |
-| Backend API (Railway) | _https://your-app.up.railway.app_ |
+| Frontend (Netlify) | https://user-tracking-rbac-app.netlify.app |
+| Backend API (Railway) | https://useractivitytracking-production.up.railway.app |
 
 ---
 
@@ -363,46 +363,11 @@ node seedData.js
 
 ## Deployment
 
-This app is split into two independently deployed services.
+| Service | Platform | URL |
+|---|---|---|
+| Frontend | Netlify | https://user-tracking-rbac-app.netlify.app |
+| Backend API | Railway | https://useractivitytracking-production.up.railway.app |
 
-### Backend → Railway
-
-1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Select your repository; set **Root Directory** = `backend`
-3. Railway auto-detects Node.js and runs `npm start`
-4. Add the following **environment variables** in the Railway dashboard:
-
-   | Variable | Value |
-   |---|---|
-   | `MONGO_URI` | Your Atlas connection string |
-   | `JWT_SECRET` | A long random secret |
-   | `JWT_EXPIRE` | `7d` |
-   | `CLIENT_URL` | `https://your-app.netlify.app` (fill in after Netlify deploy) |
-
-5. Railway sets `PORT` automatically — the server already reads `process.env.PORT`.
-6. Copy your Railway deployment URL: `https://xxxx.up.railway.app`
-
-### Frontend → Netlify
-
-1. Go to [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import from Git**
-2. Set build settings:
-
-   | Setting | Value |
-   |---|---|
-   | Base directory | `frontend` |
-   | Build command | `npm run build` |
-   | Publish directory | `frontend/dist` |
-
-3. Add **environment variable**:
-
-   | Variable | Value |
-   |---|---|
-   | `VITE_API_URL` | `https://xxxx.up.railway.app` (your Railway URL) |
-
-4. Deploy. Copy your Netlify URL: `https://yyyy.netlify.app`
-
-### Connect them
-
-Go back to Railway → Variables → update `CLIENT_URL` to your Netlify URL. Railway will redeploy automatically.
-
-> The `frontend/public/_redirects` file (`/* /index.html 200`) is already committed — it tells Netlify to serve `index.html` for any path so React Router works on direct URL loads and refreshes.
+- Backend deployed from the `backend/` directory on Railway with `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL` env vars
+- Frontend deployed from the `frontend/` directory on Netlify with `VITE_API_URL` pointing to the Railway backend
+- `frontend/public/_redirects` handles React Router on Netlify (`/* /index.html 200`)
