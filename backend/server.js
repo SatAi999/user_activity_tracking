@@ -16,8 +16,9 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
+  'http://localhost:5176',
   process.env.CLIENT_URL,          // e.g. https://your-app.netlify.app
-].filter(Boolean);
+].filter(Boolean).map(o => o.replace(/\/$/, ''));
 
 app.use(cors({
   origin: (origin, cb) => {
