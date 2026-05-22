@@ -17,7 +17,8 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5175',
   'http://localhost:5176',
-  process.env.CLIENT_URL,          // e.g. https://your-app.netlify.app
+  'https://user-tracking-rbac-app.netlify.app', // hardcoded fallback
+  process.env.CLIENT_URL,
 ].filter(Boolean).map(o => o.replace(/\/$/, ''));
 
 app.use(cors({
