@@ -13,7 +13,7 @@ const register = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { name, email, password, role } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
@@ -21,10 +21,9 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Only allow admin role if explicitly passed AND an admin is making the request
-    const assignedRole = role === 'admin' ? 'admin' : 'user';
-
-    const user = await User.create({ name, email, password, role: assignedRole });
+    // Role is ALWAYS 'user' on self-registration.
+    // Admins are created only via seeding or by an existing admin in UserManagement.
+    const user = await User.create({ name, email, password, role: 'user' });
 
     await ActivityLog.create({
       user: user._id,

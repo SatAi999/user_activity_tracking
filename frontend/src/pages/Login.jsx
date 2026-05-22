@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiCheckSquare, FiArrowRight, FiShield, FiBarChart2, FiUsers, FiUser } from 'react-icons/fi';
+import { FiMail, FiLock, FiCheckSquare, FiArrowRight, FiBarChart2, FiUsers } from 'react-icons/fi';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
-  const [role, setRole] = useState('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -83,25 +82,6 @@ const Login = () => {
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sign in</h2>
           <p className="text-slate-500 dark:text-[#9494b8] text-sm mb-6">Enter your credentials to continue</p>
-
-          {/* Role selector */}
-          <div className="flex gap-3 mb-6">
-            {[{ value: 'user', icon: FiUser, label: 'User' }, { value: 'admin', icon: FiShield, label: 'Admin' }].map(({ value, icon: Icon, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setRole(value)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                  role === value
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
-                    : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-[#9494b8] hover:border-slate-300 dark:hover:border-white/20 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-              >
-                <Icon className="text-sm" />
-                {label}
-              </button>
-            ))}
-          </div>
 
           {/* Inline error */}
           {error && (
