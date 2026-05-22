@@ -1,6 +1,6 @@
-﻿import { useState, useEffect, useContext } from 'react';
+﻿import { useState, useEffect } from 'react';
 import api from '../../api/axios';
-import { ThemeContext } from '../../context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -11,7 +11,7 @@ const COLORS = ['#6366f1', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#3b82f6'
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { dark } = useContext(ThemeContext);
+  const { dark } = useTheme();
 
   useEffect(() => {
     api.get('/admin/analytics')

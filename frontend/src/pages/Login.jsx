@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiCheckSquare, FiArrowRight, FiBarChart2, FiUsers } from 'react-icons/fi';
+import { FiMail, FiLock, FiCheckSquare, FiArrowRight, FiShield, FiBarChart2, FiUsers } from 'react-icons/fi';
 
 const Login = () => {
   const { login } = useAuth();
